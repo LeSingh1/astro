@@ -81,6 +81,16 @@ export default async function createAstroServerApp(
 			app.clearMiddleware();
 			actualLogger.debug('router', 'Middleware cache cleared due to file change');
 		});
+
+		// Listen for SSR-only module changes (e.g. .astro component files).
+		// Clear the route cache so getStaticPaths() is re-evaluated with fresh
+		// module references. Without this, components passed as props via
+		// getStaticPaths or resolved through dynamic imports would remain stale
+		// even after the browser triggers a full reload.
+		import.meta.hot.on('astro:server-change', () => {
+			app.clearRouteCache();
+			actualLogger.debug('router', 'Route cache cleared due to server module change');
+		});
 	}
 
 	return {

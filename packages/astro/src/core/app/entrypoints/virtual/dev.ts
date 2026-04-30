@@ -40,6 +40,14 @@ export const createApp: CreateApp = ({ streaming } = {}) => {
 			if (!currentDevApp) return;
 			currentDevApp.clearMiddleware();
 		});
+
+		// Listen for SSR-only module changes.
+		// Clear the route cache so getStaticPaths() is re-evaluated with fresh
+		// module references on the next request.
+		import.meta.hot.on('astro:server-change', () => {
+			if (!currentDevApp) return;
+			currentDevApp.pipeline.routeCache.clearAll();
+		});
 	}
 
 	return currentDevApp;

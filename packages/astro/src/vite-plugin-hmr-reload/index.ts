@@ -2,6 +2,7 @@ import type { EnvironmentModuleNode, Plugin } from 'vite';
 import { VIRTUAL_PAGE_RESOLVED_MODULE_ID } from '../vite-plugin-pages/const.js';
 import { getDevCssModuleNameFromPageVirtualModuleName } from '../vite-plugin-css/util.js';
 import { isAstroServerEnvironment } from '../environments.js';
+import { ASTRO_VITE_ENVIRONMENT_NAMES } from '../core/constants.js';
 
 const STYLE_EXT_REGEX = /\.(?:css|scss|sass|less|styl|pcss)$/i;
 
@@ -60,6 +61,20 @@ export default function hmrReload(): Plugin {
 				}
 
 				if (hasSsrOnlyModules) {
+					// Clear the route cache in all server environments so that
+					// getStaticPaths() is re-evaluated on the next request. Without this,
+					// stale cached props (e.g. components passed via getStaticPaths props
+					// or resolved via dynamic imports) would be served even after the
+					// imported module has been invalidated.
+					for (const name of [
+						ASTRO_VITE_ENVIRONMENT_NAMES.ssr,
+						ASTRO_VITE_ENVIRONMENT_NAMES.prerender,
+					] as const) {
+						const environment = server.environments[name];
+						if (environment) {
+							environment.hot.send('astro:server-change', {});
+						}
+					}
 					server.ws.send({ type: 'full-reload' });
 					return [];
 				}
