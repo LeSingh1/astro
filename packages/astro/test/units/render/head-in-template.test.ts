@@ -95,10 +95,10 @@ describe('head rendering with <template> elements', () => {
 		assert.equal($('body div').text(), 'Page content');
 	});
 
-	it('renders styles correctly when layout containsHead is only in component metadata tree', async () => {
-		// This tests the fallback path where the page's own componentMetadata entry
-		// doesn't have containsHead=true, but another module in the tree does.
-		// The fix scans all componentMetadata values.
+	it('templateDepth guard prevents styles from leaking into template even without headInTree', async () => {
+		// When headInTree is false (e.g. containsHead propagation didn't reach this page),
+		// maybeRenderHead() fires — but the templateDepth guard ensures it doesn't render
+		// inside a <template> element. Styles should still end up in the right place.
 
 		const Icon = createComponent(() => {
 			return render`${maybeRenderHead()}<svg class="icon"></svg>`;
