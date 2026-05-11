@@ -54,8 +54,8 @@ describe('head rendering with <template> elements', () => {
 		// fire inside the template, trapping all styles inside the inert template element.
 
 		// Icon-like component that renders an SVG (calls maybeRenderHead before non-head content)
-		const Icon = createComponent((result: any) => {
-			return render`${maybeRenderHead(result)}<svg class="icon" viewBox="0 0 24 24"></svg>`;
+		const Icon = createComponent(() => {
+			return render`${maybeRenderHead()}<svg class="icon" viewBox="0 0 24 24"></svg>`;
 		});
 
 		// ThemeProvider-like component with a <template> wrapping Icon components
@@ -71,7 +71,7 @@ describe('head rendering with <template> elements', () => {
 		// Page using the layout
 		const Page = createComponent((result: any) => {
 			return render`${renderComponent(result, 'Layout', Layout, {}, {
-				default: () => render`${maybeRenderHead(result)}<div>Page content</div>`,
+				default: () => render`${maybeRenderHead()}<div>Page content</div>`,
 			})}`;
 		});
 
@@ -100,8 +100,8 @@ describe('head rendering with <template> elements', () => {
 		// doesn't have containsHead=true, but another module in the tree does.
 		// The fix scans all componentMetadata values.
 
-		const Icon = createComponent((result: any) => {
-			return render`${maybeRenderHead(result)}<svg class="icon"></svg>`;
+		const Icon = createComponent(() => {
+			return render`${maybeRenderHead()}<svg class="icon"></svg>`;
 		});
 
 		const ThemeProvider = createComponent((result: any) => {
@@ -114,7 +114,7 @@ describe('head rendering with <template> elements', () => {
 
 		const Page = createComponent((result: any) => {
 			return render`${renderComponent(result, 'Layout', Layout, {}, {
-				default: () => render`${maybeRenderHead(result)}<main>Hello</main>`,
+				default: () => render`${maybeRenderHead()}<main>Hello</main>`,
 			})}`;
 		});
 
