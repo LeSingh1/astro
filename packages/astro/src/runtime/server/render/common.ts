@@ -76,12 +76,22 @@ function stringifyChunk(
 				}
 			}
 			case 'head': {
+				// Never render head content inside a <template> element — template content
+				// is inert and styles/scripts injected there are invisible to the browser.
+				if (result._metadata.templateDepth > 0) {
+					return '';
+				}
 				if (!shouldRenderInstruction('head', getInstructionRenderState(result))) {
 					return '';
 				}
 				return renderAllHeadContent(result);
 			}
 			case 'maybe-head': {
+				// Never render head content inside a <template> element — template content
+				// is inert and styles/scripts injected there are invisible to the browser.
+				if (result._metadata.templateDepth > 0) {
+					return '';
+				}
 				if (!shouldRenderInstruction('maybe-head', getInstructionRenderState(result))) {
 					return '';
 				}

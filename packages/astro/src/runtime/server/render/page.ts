@@ -21,7 +21,11 @@ export async function renderPage(
 ): Promise<Response> {
 	if (!isAstroComponentFactory(componentFactory)) {
 		result._metadata.headInTree =
-			result.componentMetadata.get((componentFactory as any).moduleId)?.containsHead ?? false;
+			result.componentMetadata.get((componentFactory as any).moduleId)?.containsHead ??
+			// Fall back to checking the entire component tree — the page's own metadata may not
+			// have been marked yet if `containsHead` propagation didn't reach it (e.g. when
+			// Vite's resolveId cache skips re-propagation for shared layouts loaded by earlier pages).
+			Array.from(result.componentMetadata.values()).some((m) => m.containsHead);
 
 		const pageProps: Record<string, any> = { ...(props ?? {}), 'server:root': true };
 
@@ -104,7 +108,11 @@ export async function renderPage(
 	// Mark if this page component contains a <head> within its tree. If it does
 	// We avoid implicit head injection entirely.
 	result._metadata.headInTree =
-		result.componentMetadata.get(componentFactory.moduleId!)?.containsHead ?? false;
+		result.componentMetadata.get(componentFactory.moduleId!)?.containsHead ??
+		// Fall back to checking the entire component tree — the page's own metadata may not
+		// have been marked yet if `containsHead` propagation didn't reach it (e.g. when
+		// Vite's resolveId cache skips re-propagation for shared layouts loaded by earlier pages).
+		Array.from(result.componentMetadata.values()).some((m) => m.containsHead);
 
 	let body: BodyInit | Response;
 	if (streaming) {
