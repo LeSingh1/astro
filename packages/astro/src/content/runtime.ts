@@ -600,10 +600,25 @@ async function render({
 	const { default: defaultMod } = baseMod;
 
 	if (isPropagatedAssetsModule(defaultMod)) {
-		const { collectedStyles, collectedLinks, collectedScripts, getMod } = defaultMod;
+		let { collectedStyles, collectedLinks, collectedScripts, getMod } = defaultMod;
 		if (typeof getMod !== 'function') throw UnexpectedRenderError;
 		const propagationMod = await getMod();
 		if (propagationMod == null || typeof propagationMod !== 'object') throw UnexpectedRenderError;
+
+		// In dev mode, the ?astroPropagatedAssets transform sets `basePath` instead of
+		// baking styles at transform time. We collect styles fresh here at render time
+		// by calling into the dev style collector registry. This ensures the Vite module
+		// graph has been fully populated before we crawl it for CSS.
+		if (defaultMod.basePath) {
+			try {
+				const { collectStylesForContentEntry } = await import('./dev-style-collector.js');
+				const collected = await collectStylesForContentEntry(defaultMod.basePath);
+				collectedStyles = collected.styles;
+				collectedLinks = collected.urls;
+			} catch {
+				// Fallback to static arrays if the collector isn't available
+			}
+		}
 
 		const Content = createComponent({
 			factory(result, baseProps, slots) {
@@ -714,6 +729,8 @@ type PropagatedAssetsModule = {
 	collectedStyles: string[];
 	collectedLinks: string[];
 	collectedScripts: string[];
+	/** Dev-only: base file path for dynamic style collection at render time */
+	basePath?: string;
 };
 
 function isPropagatedAssetsModule(module: any): module is PropagatedAssetsModule {

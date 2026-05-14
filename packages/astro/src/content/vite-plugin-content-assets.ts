@@ -22,6 +22,7 @@ import { hasContentFlag } from './utils.js';
 import { joinPaths, prependForwardSlash, slash } from '@astrojs/internal-helpers/path';
 import { ASTRO_VITE_ENVIRONMENT_NAMES } from '../core/constants.js';
 import { isAstroServerEnvironment } from '../environments.js';
+import { registerStyleCollector } from './dev-style-collector.js';
 
 export function astroContentAssetPropagationPlugin({
 	settings,
@@ -99,56 +100,59 @@ export function astroContentAssetPropagationPlugin({
 			async handler(_, id) {
 				if (hasContentFlag(id, PROPAGATED_ASSET_FLAG)) {
 					const basePath = id.split('?')[0];
-					let stringifiedLinks: string, stringifiedStyles: string;
 
-					// We can access the server in dev,
-					// so resolve collected styles and scripts here.
 					if (isAstroServerEnvironment(this.environment) && environment) {
-						if (!environment.moduleGraph.getModuleById(basePath)?.ssrModule) {
-							// Ignore errors here — when using a fallback environment (e.g. the 'astro'
-							// env when Cloudflare's ssr env is non-runnable), the module may already be
-							// loaded in the fallback env's graph even if this import throws due to
-							// concurrent bundle editing.
-							await environment.runner.import(basePath).catch(() => {});
-						}
-						const {
-							styles,
-							urls,
-							crawledFiles: styleCrawledFiles,
-						} = await getStylesForURL(basePath, environment);
-
-						// Register files we crawled to be able to retrieve the rendered styles and scripts,
-						// as when they get updated, we need to re-transform ourselves.
-						// We also only watch files within the user source code, as changes in node_modules
-						// are usually also ignored by Vite.
-						for (const file of styleCrawledFiles) {
-							if (!file.includes('node_modules')) {
-								this.addWatchFile(file);
+						// In dev mode, instead of baking styles at transform time (which can
+						// miss styles if the module graph isn't fully populated yet), we register
+						// a collector function that crawls the module graph fresh at render time.
+						// This ensures content entry styles are always up-to-date even if the
+						// module graph was incomplete during the initial transform.
+						const envRef = environment;
+						registerStyleCollector(basePath, async () => {
+							if (!envRef.moduleGraph.getModuleById(basePath)?.ssrModule) {
+								await envRef.runner.import(basePath).catch(() => {});
 							}
+							const { styles, urls } = await getStylesForURL(basePath, envRef);
+							return {
+								styles: styles.map((s) => s.content),
+								urls: [...urls],
+							};
+						});
+
+						const code = `
+						async function getMod() {
+							return import(${JSON.stringify(basePath)});
 						}
-
-						stringifiedLinks = JSON.stringify([...urls]);
-						stringifiedStyles = JSON.stringify(styles.map((s) => s.content));
+						const collectedLinks = [];
+						const collectedStyles = [];
+						const defaultMod = {
+							__astroPropagation: true,
+							getMod,
+							collectedLinks,
+							collectedStyles,
+							collectedScripts: [],
+							basePath: ${JSON.stringify(basePath)}
+						};
+						export default defaultMod;
+					`;
+						return { code, map: { mappings: '' } };
 					} else {
-						// Otherwise, use placeholders to inject styles and scripts
+						// Build mode: use placeholders to inject styles and scripts
 						// during the production bundle step.
-						// @see the `astro:content-build-plugin` below.
-						stringifiedLinks = JSON.stringify(LINKS_PLACEHOLDER);
-						stringifiedStyles = JSON.stringify(STYLES_PLACEHOLDER);
-					}
+						const stringifiedLinks = JSON.stringify(LINKS_PLACEHOLDER);
+						const stringifiedStyles = JSON.stringify(STYLES_PLACEHOLDER);
 
-					const code = `
-					async function getMod() {
-						return import(${JSON.stringify(basePath)});
+						const code = `
+						async function getMod() {
+							return import(${JSON.stringify(basePath)});
+						}
+						const collectedLinks = ${stringifiedLinks};
+						const collectedStyles = ${stringifiedStyles};
+						const defaultMod = { __astroPropagation: true, getMod, collectedLinks, collectedStyles, collectedScripts: [] };
+						export default defaultMod;
+					`;
+						return { code, map: { mappings: '' } };
 					}
-					const collectedLinks = ${stringifiedLinks};
-					const collectedStyles = ${stringifiedStyles};
-					const defaultMod = { __astroPropagation: true, getMod, collectedLinks, collectedStyles, collectedScripts: [] };
-					export default defaultMod;
-				`;
-					// ^ Use a default export for tools like Markdoc
-					// to catch the `__astroPropagation` identifier
-					return { code, map: { mappings: '' } };
 				}
 			},
 		},
