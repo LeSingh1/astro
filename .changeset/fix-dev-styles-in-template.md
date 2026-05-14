@@ -2,6 +2,6 @@
 'astro': patch
 ---
 
-Fixes dev-mode styles missing on pages that share a layout containing a `<template>` element (e.g. a theme-provider icon sprite)
+Fixes dev-mode styles missing from content collection entries that use `.astro` components with scoped styles
 
-In dev, Vite's `resolveId` cache could prevent `containsHead` from propagating to pages loaded after the first one. When the flag was missing, `maybeRenderHead()` fired inside an inert `<template>` element, causing all styles and scripts to be invisible to the browser. The fix falls back to scanning all component metadata for a `containsHead` entry, and adds a `templateDepth` guard so head content is never rendered inside `<template>`.
+Content entry styles are now collected at render time instead of being baked into the module at transform time. Previously, if the Vite module graph was incomplete when the `?astroPropagatedAssets` module was first transformed, styles were permanently missing until a dev server restart. Also prevents head content from rendering inside inert `<template>` elements in layouts.
