@@ -1,5 +1,19 @@
 # astro
 
+## 6.3.4
+
+### Patch Changes
+
+- [#16572](https://github.com/withastro/astro/pull/16572) [`4a5a077`](https://github.com/withastro/astro/commit/4a5a0779712be11680a9fc729be2ba9dd93f68d2) Thanks [@DORI2001](https://github.com/DORI2001)! - Suppresses `[WARN] Vite warning: unused imports from "@astrojs/internal-helpers/remote"` during prerender builds. The package is now bundled alongside `astro` in the prerender environment, matching how it is handled in the SSR environment.
+
+- [#16756](https://github.com/withastro/astro/pull/16756) [`b6ee23d`](https://github.com/withastro/astro/commit/b6ee23d339311c356ad25781f62454aee289e47b) Thanks [@astrobot-houston](https://github.com/astrobot-houston)! - Fixes styles from Markdoc/MDX custom components not being extracted to `<head>` in the dev server when using the Cloudflare adapter with `prerenderEnvironment: 'node'` and rendering content through a wrapper component.
+
+- [#16701](https://github.com/withastro/astro/pull/16701) [`3495ce4`](https://github.com/withastro/astro/commit/3495ce4f3af103673e32b6fdd452e4108252e1b5) Thanks [@demaisj](https://github.com/demaisj)! - Fix `Map` and `Set` instances saved in a content collection being broken when retrieving entries.
+
+- [#16614](https://github.com/withastro/astro/pull/16614) [`fca1c32`](https://github.com/withastro/astro/commit/fca1c32c329f6044c6833debdb9d683dd2103fc9) Thanks [@Eptagone](https://github.com/Eptagone)! - Fixes `entry.data` type inference when a live collection is configured without a schema.
+
+- [#16681](https://github.com/withastro/astro/pull/16681) [`c22770a`](https://github.com/withastro/astro/commit/c22770a58c3b312ad4bba81707be72f551ee02db) Thanks [@dotnetCarpenter](https://github.com/dotnetCarpenter)! - Fixes an issue where SVG images with `width="0"` or `height="0"` incorrectly threw a `NoImageMetadata` error instead of being treated as valid dimensions.
+
 ## 6.3.3
 
 ### Patch Changes
