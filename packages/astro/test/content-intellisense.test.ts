@@ -49,13 +49,30 @@ describe('Content Intellisense', () => {
 		assert.equal(collectionsDir.includes('data-dates.schema.json'), true);
 	});
 
-	it('generates a record JSON schema for the file loader', async () => {
+	it('generates a JSON schema for the file loader that validates both object maps and arrays', async () => {
 		const schema = JSON.parse(
 			await fixture.readFile('../../.astro/collections/data-cl.schema.json'),
 		);
-		assert.equal(schema.type, 'object');
-		assert.equal(schema.additionalProperties.type, 'object');
-		assert.deepEqual(schema.additionalProperties.properties, {
+		// Schema should use anyOf to support both object-map and array data shapes
+		assert.ok(Array.isArray(schema.anyOf), 'Expected schema to have an anyOf array');
+		assert.equal(schema.anyOf.length, 2, 'Expected two variants in anyOf');
+
+		// First variant: object map with additionalProperties
+		const objectVariant = schema.anyOf.find((v) => v.type === 'object');
+		assert.ok(objectVariant, 'Expected an object variant');
+		assert.equal(objectVariant.additionalProperties.type, 'object');
+		assert.deepEqual(objectVariant.additionalProperties.properties, {
+			name: { type: 'string' },
+			color: { type: 'string' },
+		});
+		// Object variant should accept a $schema property
+		assert.deepEqual(objectVariant.properties['$schema'], { type: 'string' });
+
+		// Second variant: array of items
+		const arrayVariant = schema.anyOf.find((v) => v.type === 'array');
+		assert.ok(arrayVariant, 'Expected an array variant');
+		assert.equal(arrayVariant.items.type, 'object');
+		assert.deepEqual(arrayVariant.items.properties, {
 			name: { type: 'string' },
 			color: { type: 'string' },
 		});

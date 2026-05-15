@@ -626,13 +626,12 @@ async function generateJSONSchema(
 		collectionConfig.type === CONTENT_LAYER_TYPE &&
 		collectionConfig.loader.name === 'file-loader'
 	) {
-		// `file()` supports arrays of items, but you can’t set `$schema` when using a top-level array,
-		// so we’re only handling the object case.
-		// We use `z.object()` instead of `z.record()` for compatibility with the next `if` statement.
-		zodSchemaForJson = z.object({}).catchall(zodSchemaForJson);
-	}
-
-	if (zodSchemaForJson instanceof z.ZodObject) {
+		// `file()` supports both arrays and objects as top-level data, so we generate a schema
+		// that validates either shape using a union (`anyOf` in JSON Schema).
+		const objectVariant = z.object({ $schema: z.string().optional() }).catchall(zodSchemaForJson);
+		const arrayVariant = z.array(zodSchemaForJson);
+		zodSchemaForJson = z.union([objectVariant, arrayVariant]);
+	} else if (zodSchemaForJson instanceof z.ZodObject) {
 		const existingMeta = z.globalRegistry.get(zodSchemaForJson);
 		zodSchemaForJson = zodSchemaForJson.extend({
 			$schema: z.string().optional(),
