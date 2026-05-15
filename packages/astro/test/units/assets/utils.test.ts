@@ -8,6 +8,7 @@ import { createPlaceholderURL, stringifyPlaceholderURL } from '../../../dist/ass
 import { isESMImportedImage, isRemoteImage } from '../../../dist/assets/utils/imageKind.js';
 import { propsToFilename } from '../../../dist/assets/utils/hash.js';
 import { dropAttributes } from '../../../dist/assets/runtime.js';
+import { generateImagePositionCSS } from '../../../dist/assets/utils/generateImageStylesCSS.js';
 
 // #region getAssetsPrefix
 describe('getAssetsPrefix', () => {
@@ -327,6 +328,25 @@ describe('dropAttributes', () => {
 		const attrs = { xmlns: 'test', fill: 'red' };
 		const result = dropAttributes(attrs);
 		assert.equal(result, attrs);
+	});
+});
+// #endregion
+
+// #region generateImagePositionCSS
+describe('generateImagePositionCSS', () => {
+	it('generates CSS for simple position value', () => {
+		const css = generateImagePositionCSS('center');
+		assert.equal(css, '[data-astro-image-pos="center"]{object-position:center}');
+	});
+
+	it('normalizes spaces to dashes in data attribute selector', () => {
+		const css = generateImagePositionCSS('left top');
+		assert.equal(css, '[data-astro-image-pos="left-top"]{object-position:left top}');
+	});
+
+	it('handles percentage values', () => {
+		const css = generateImagePositionCSS('20% 80%');
+		assert.equal(css, '[data-astro-image-pos="20%-80%"]{object-position:20% 80%}');
 	});
 });
 // #endregion

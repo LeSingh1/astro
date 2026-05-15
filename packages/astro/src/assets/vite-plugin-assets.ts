@@ -18,10 +18,12 @@ import { isAstroServerEnvironment } from '../environments.js';
 import type { AstroSettings } from '../types/astro.js';
 import {
 	RESOLVED_VIRTUAL_GET_IMAGE_ID,
+	RESOLVED_VIRTUAL_IMAGE_POSITION_STYLES_ID,
 	RESOLVED_VIRTUAL_IMAGE_STYLES_ID,
 	RESOLVED_VIRTUAL_MODULE_ID,
 	VALID_INPUT_FORMATS,
 	VIRTUAL_GET_IMAGE_ID,
+	VIRTUAL_IMAGE_POSITION_STYLES_ID,
 	VIRTUAL_IMAGE_STYLES_ID,
 	VIRTUAL_MODULE_ID,
 	VIRTUAL_SERVICE_ID,
@@ -133,6 +135,18 @@ export default function assets({ fs, settings, sync, logger }: Options): vite.Pl
 	};
 
 	const imageComponentPrefix = settings.config.image.responsiveStyles ? 'Responsive' : '';
+
+	// Determine which image CSS import to use:
+	// - responsiveStyles: true → full image styles (fit + position + layout)
+	// - responsiveStyles: false + layout configured → position-only styles (CSP-compliant)
+	// - neither → no image styles
+	let imageStylesImport = '';
+	if (settings.config.image.responsiveStyles) {
+		imageStylesImport = `import "${VIRTUAL_IMAGE_STYLES_ID}";`;
+	} else if (settings.config.image.layout) {
+		imageStylesImport = `import "${VIRTUAL_IMAGE_POSITION_STYLES_ID}";`;
+	}
+
 	return [
 		// Expose the components and different utilities from `astro:assets`
 		{
@@ -215,7 +229,7 @@ export default function assets({ fs, settings, sync, logger }: Options): vite.Pl
 						code: `
 				import { getConfiguredImageService as _getConfiguredImageService } from "astro/assets";
 				export { isLocalService } from "astro/assets";
-				${settings.config.image.responsiveStyles ? `import "${VIRTUAL_IMAGE_STYLES_ID}";` : ''}
+				${imageStylesImport}
 					export { default as Image } from "astro/components/${imageComponentPrefix}Image.astro";
 					export { default as Picture } from "astro/components/${imageComponentPrefix}Picture.astro";
 					import { inferRemoteSize as inferRemoteSizeInternal } from "astro/assets/utils/inferRemoteSize.js";
@@ -435,11 +449,41 @@ export default function assets({ fs, settings, sync, logger }: Options): vite.Pl
 				async handler(id) {
 					if (id === RESOLVED_VIRTUAL_IMAGE_STYLES_ID) {
 						const { generateImageStylesCSS } = await import('./utils/generateImageStylesCSS.js');
+						// Default to 'center' for objectPosition to match Image.astro's component-level default
 						const css = generateImageStylesCSS(
 							settings.config.image.objectFit,
-							settings.config.image.objectPosition,
+							settings.config.image.objectPosition ??
+								(settings.config.image.layout ? 'center' : undefined),
 						);
 						return { code: css };
+					}
+				},
+			},
+		},
+		// Lightweight position-only styles, always imported when image.layout is set
+		// and responsiveStyles is false. Delivers object-position CSS via a hashed
+		// <style> tag instead of CSP-violating inline style attributes.
+		{
+			name: 'astro:image-position-styles',
+			resolveId: {
+				filter: {
+					id: new RegExp(`^${VIRTUAL_IMAGE_POSITION_STYLES_ID}$`),
+				},
+				handler(id) {
+					if (id === VIRTUAL_IMAGE_POSITION_STYLES_ID) {
+						return RESOLVED_VIRTUAL_IMAGE_POSITION_STYLES_ID;
+					}
+				},
+			},
+			load: {
+				filter: {
+					id: new RegExp(`^${RESOLVED_VIRTUAL_IMAGE_POSITION_STYLES_ID}$`),
+				},
+				async handler(id) {
+					if (id === RESOLVED_VIRTUAL_IMAGE_POSITION_STYLES_ID) {
+						const { generateImagePositionCSS } = await import('./utils/generateImageStylesCSS.js');
+						const position = settings.config.image.objectPosition ?? 'center';
+						return { code: generateImagePositionCSS(position) };
 					}
 				},
 			},

@@ -1,5 +1,15 @@
 import { cssFitValues } from '../internal.js';
 
+/**
+ * Generates minimal CSS for object-position using data attributes.
+ * Used when responsiveStyles is false to deliver position CSS via a
+ * hashed <style> tag instead of CSP-violating inline style attributes.
+ */
+export function generateImagePositionCSS(defaultObjectPosition: string): string {
+	const normalized = defaultObjectPosition.replace(/\s+/g, '-');
+	return `[data-astro-image-pos="${normalized}"]{object-position:${defaultObjectPosition}}`;
+}
+
 export function generateImageStylesCSS(
 	defaultObjectFit?: string,
 	defaultObjectPosition?: string,

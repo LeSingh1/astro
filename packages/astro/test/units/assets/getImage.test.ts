@@ -278,7 +278,7 @@ describe('getImage', () => {
 			assert.equal(result.attributes.position, undefined);
 		});
 
-		it('includes object-position in style attribute when position is provided', async () => {
+		it('does not add inline style for object-position (CSP compliance)', async () => {
 			const result = await renderImage({
 				src: 'https://example.com/photo.jpg',
 				width: 300,
@@ -288,10 +288,13 @@ describe('getImage', () => {
 				position: 'left top',
 			});
 
-			assert.match(result.attributes.style, /object-position:\s*left top/);
+			// Position should be delivered via data attribute, not inline style
+			assert.equal(result.attributes['data-astro-image-pos'], 'left-top');
+			// No inline style should be added for object-position
+			assert.equal(result.attributes.style, undefined);
 		});
 
-		it('merges position into existing style object without overwriting', async () => {
+		it('preserves user-provided style without injecting object-position', async () => {
 			const result = await renderImage({
 				src: 'https://example.com/photo.jpg',
 				width: 300,
@@ -302,10 +305,10 @@ describe('getImage', () => {
 				style: { color: 'red' },
 			});
 
-			assert.deepStrictEqual(result.attributes.style, {
-				color: 'red',
-				objectPosition: 'top right',
-			});
+			// User-provided style should be preserved
+			assert.deepStrictEqual(result.attributes.style, { color: 'red' });
+			// Position should be in data attribute only
+			assert.equal(result.attributes['data-astro-image-pos'], 'top-right');
 		});
 	});
 

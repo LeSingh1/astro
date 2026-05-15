@@ -8,6 +8,10 @@ export const RESOLVED_VIRTUAL_GET_IMAGE_ID = '\0' + VIRTUAL_GET_IMAGE_ID;
 // Must keep the extension so we trigger the pipeline of CSS files
 export const VIRTUAL_IMAGE_STYLES_ID = 'virtual:astro:image-styles.css';
 export const RESOLVED_VIRTUAL_IMAGE_STYLES_ID = '\0' + VIRTUAL_IMAGE_STYLES_ID;
+// Lightweight position-only styles, always imported when image.layout is set
+// (even when responsiveStyles is false) to avoid CSP-violating inline styles
+export const VIRTUAL_IMAGE_POSITION_STYLES_ID = 'virtual:astro:image-position-styles.css';
+export const RESOLVED_VIRTUAL_IMAGE_POSITION_STYLES_ID = '\0' + VIRTUAL_IMAGE_POSITION_STYLES_ID;
 export const VALID_INPUT_FORMATS = [
 	'jpeg',
 	'jpg',
